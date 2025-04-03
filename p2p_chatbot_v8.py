@@ -799,7 +799,7 @@ def get_embeddings_model(username=None):
             # to ensure a unique cache entry per user
             model = HuggingFaceEmbeddings(
                 model_name="all-MiniLM-L6-v2",
-                model_kwargs={'device': 'cuda'},
+                model_kwargs={'device': 'cpu'},
                 encode_kwargs={'normalize_embeddings': True}
             )
         
