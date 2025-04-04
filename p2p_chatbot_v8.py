@@ -1194,7 +1194,7 @@ def generate_sql(query):
 
     User request: "{query}"
     SQL Query:
-    ""
+    """
     
     try:
         response = model.generate_content(prompt)
