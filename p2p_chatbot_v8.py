@@ -1183,8 +1183,47 @@ def fetch_table_columns_from_json(table_name, schema_name="AP", json_file="schem
     except Exception as e:
         return f"Failed to fetch table columns: {str(e)}"
 
+def generate_sql(query):
+    """Generate an optimized Oracle SQL query from natural language."""
+    prompt = f"""
+    You are an expert in Oracle SQL and Oracle E-Business Suite (EBS). Convert the following user request into a well-optimized Oracle SQL query. 
+    - Ensure correct joins based on Oracle ERP standard tables (e.g., HZ_PARTIES, AP_INVOICES_ALL, PO_HEADERS_ALL).
+    - Use TO_DATE() when filtering by date.
+    - Apply INDEX optimizations where necessary.
+    - Avoid SELECT *, instead list the required columns.
+
+    User request: "{query}"
+    SQL Query:
+    ""
+    
+    try:
+        response = model.generate_content(prompt)
+        sql_query = response.text.strip()
+
+        if validate_sql(sql_query):
+            return sql_query
+        else:
+            st.error("Generated SQL contains potentially harmful operations.")
+            return None
+    except Exception as e:
+        st.error(f"Error generating SQL query: {str(e)}")
+        return None
+
+def validate_sql(sql):
+    """Stronger SQL security check to prevent harmful SQL."""
+    forbidden_patterns = [
+        r"DROP\s+TABLE", r"DELETE\s+FROM", r"TRUNCATE", r"ALTER\s+TABLE",
+        r"DROP\s+DATABASE", r"GRANT\s+ALL", r"EXECUTE\s+IMMEDIATE", r"UTL_FILE"
+    ]
+    return not any(re.search(pattern, sql, re.IGNORECASE) for pattern in forbidden_patterns)
+
 def generate_enhanced_response(query, doc_chunks, web_content, table_name=None):
     """Generate response for DOC queries using Gemini model."""
+
+    sql_keywords = ["query", "generate SQL", "write SQL", "create SQL", "SQL query", "SQL"]
+    if any(keyword.lower() in query.lower() for keyword in sql_keywords):
+        return generate_sql(query)
+    
     if not st.session_state.doc_data:
         return "No Document data available. Please load a Doc file first."
 
